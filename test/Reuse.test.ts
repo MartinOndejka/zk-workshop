@@ -1,6 +1,7 @@
 import { Barretenberg, Fr } from "@aztec/bb.js";
 import { BarretenbergBackend, CompiledCircuit } from "@noir-lang/backend_barretenberg";
 import { Noir } from "@noir-lang/noir_js";
+import { expect } from "chai";
 import { ethers } from "hardhat";
 import circuit from "../circuits/target/circuits.json";
 import { Membership, UltraVerifier } from "../typechain-types";
@@ -44,12 +45,13 @@ describe("Membership", () => {
 
   after(async () => await noir.destroy());
 
-  it("submit proof to chain", async () => {
+  it("submit proof to chain twice", async () => {
     const publicInputs = {
       secret: secrets[0].toString(),
       index: 0,
       root: merkleTree.root().toString(),
       hash_path: (await merkleTree.proof(0)).pathElements.map((x) => x.toString()),
+      nullifier: Fr.random().toString(),
     };
 
     let hash;
@@ -66,6 +68,10 @@ describe("Membership", () => {
     const proof = await noir.generateFinalProof(publicInputs);
     await noir.verifyFinalProof(proof);
 
-    await contract.exclusive(proof.proof, [ethers.hexlify(publicInputs.root)]);
+    await contract.exclusive(proof.proof, [ethers.hexlify(publicInputs.root), ethers.hexlify(publicInputs.nullifier)]);
+
+    expect(
+      contract.exclusive(proof.proof, [ethers.hexlify(publicInputs.root), ethers.hexlify(publicInputs.nullifier)])
+    ).revertedWithoutReason();
   });
 });

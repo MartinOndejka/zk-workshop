@@ -46,7 +46,7 @@ describe("Membership", () => {
   after(async () => await noir.destroy());
 
   it("submit proof to chain twice", async () => {
-    const publicInputs = {
+    const witness = {
       secret: secrets[0].toString(),
       index: 0,
       root: merkleTree.root().toString(),
@@ -57,21 +57,21 @@ describe("Membership", () => {
     let hash;
     hash = await backend.pedersenHashMultiple([
       await backend.pedersenHashMultiple([secrets[0]]),
-      Fr.fromString(publicInputs.hash_path[0]),
+      Fr.fromString(witness.hash_path[0]),
     ]);
-    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(publicInputs.hash_path[1])]);
-    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(publicInputs.hash_path[2])]);
-    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(publicInputs.hash_path[3])]);
+    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(witness.hash_path[1])]);
+    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(witness.hash_path[2])]);
+    hash = await backend.pedersenHashMultiple([hash, Fr.fromString(witness.hash_path[3])]);
 
-    publicInputs.root = hash.toString();
+    witness.root = hash.toString();
 
-    const proof = await noir.generateFinalProof(publicInputs);
+    const proof = await noir.generateFinalProof(witness);
     await noir.verifyFinalProof(proof);
 
-    await contract.exclusive(proof.proof, [ethers.hexlify(publicInputs.root), ethers.hexlify(publicInputs.nullifier)]);
+    await contract.exclusive(proof.proof, [ethers.hexlify(witness.root), ethers.hexlify(witness.nullifier)]);
 
     expect(
-      contract.exclusive(proof.proof, [ethers.hexlify(publicInputs.root), ethers.hexlify(publicInputs.nullifier)])
+      contract.exclusive(proof.proof, [ethers.hexlify(witness.root), ethers.hexlify(witness.nullifier)])
     ).revertedWithoutReason();
   });
 });
